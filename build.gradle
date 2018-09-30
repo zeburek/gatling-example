@@ -7,7 +7,7 @@ repositories {
 }
 
 gatling {
-    toolVersion '3.0.0-RC2'
+    toolVersion '2.3.1'
     scalaVersion '2.12.7'
-    logLevel 'WARN'
+    logLevel 'ERROR'
 }
