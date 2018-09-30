@@ -1,0 +1,13 @@
+plugins {
+  id "com.github.lkishalmi.gatling" version "0.7.3"
+}
+
+repositories {
+    mavenCentral()
+}
+
+gatling {
+    toolVersion '3.0.0-RC2'
+    scalaVersion '2.12.7'
+    logLevel 'WARN'
+}
