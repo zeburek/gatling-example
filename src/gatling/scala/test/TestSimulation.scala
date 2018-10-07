@@ -2,7 +2,11 @@ package test
 
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
+import io.gatling.http.response._
 import scala.concurrent.duration._
+import java.nio.charset.StandardCharsets.UTF_8
+
+import test.utils.CustomAuth
 
 class TestSimulation extends Simulation {
   val httpConf = http.baseURL("https://httpbin.org")
@@ -83,16 +87,54 @@ class TestSimulation extends Simulation {
              List("rpm" -> "http://linux.duke.edu/metadata/repo")).exists)
   )
 
+  val customFeatures = exec(
+    http("Request GET: with signature calculator")
+      .get("/get")
+      .signatureCalculator(new CustomAuth)
+      .check(jsonPath("$.headers.Authorization").exists)
+      .check(jsonPath("$.headers.Authorization").is("TESTGEThttps://httpbin.org/get"))
+  ).exec(
+    http("Request GET: transform response")
+      .get("/get")
+      .transformResponse{
+        case response => 
+        new ResponseWrapper(response) {
+          override val body = new StringResponseBody("{}", UTF_8)
+        }
+      }
+      .check(jsonPath("$.headers").notExists)
+  ).exec(session => {
+    session.set("testKey", "testValue")
+  }).exec(
+    http("Request GET: with new param from session")
+      .get("/get")
+      .queryParam("nothing", "${testKey}")
+      .check(jsonPath("$.args.nothing").is("testValue"))
+  )
+
   val scn = scenario("TestSimulation")
     .exec(
       httpMethods,
       settingBody,
       customHeaders,
-      verifyResponse
+      verifyResponse,
+      customFeatures
     )
     .pause(5)
+  
+  val scnPosts = scenario("PostsSimulation")
+    .exec(
+      exec(ApiRequests.getAllPosts)
+        .exec(ApiRequests.getRandomPost)
+        .exec(ApiRequests.getUserPosts)
+        .exec(ApiRequests.postNewCommentToRandomPost)
+        .exec(ApiRequests.getNewComment)
+    )
 
   setUp(
-    scn.inject(atOnceUsers(1))
+    scn.inject(
+      constantUsersPerSec(3) during (5 minutes)
+    ),
+    scnPosts.inject(atOnceUsers(1))
   ).protocols(httpConf)
 }
