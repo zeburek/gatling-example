@@ -82,7 +82,7 @@ class TestSimulation extends Simulation {
       .check(jsonPath("$.json.value").is("test"))
   ).exec(
     http("Custom GET: verify XML body")
-      .post("http://repo.merproject.org/obs/home:/Kaffeine:/mer/latest_armv7hl/repodata/repomd.xml")
+      .get("http://repo.merproject.org/obs/home:/Kaffeine:/mer/latest_armv7hl/repodata/repomd.xml")
       .check(xpath("//rpm:data[@type='filelists']",
              List("rpm" -> "http://linux.duke.edu/metadata/repo")).exists)
   )
