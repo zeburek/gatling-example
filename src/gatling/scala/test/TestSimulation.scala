@@ -1,15 +1,16 @@
 package test
 
+import scala.concurrent.duration._
+
 import io.gatling.core.Predef._
 import io.gatling.http.Predef._
 import io.gatling.http.response._
-import scala.concurrent.duration._
-import java.nio.charset.StandardCharsets.UTF_8
 
+import java.nio.charset.StandardCharsets.UTF_8
 import test.utils.CustomAuth
 
 class TestSimulation extends Simulation {
-  val httpConf = http.baseURL("https://httpbin.org")
+  val httpConf = http.baseUrl("https://httpbin.org")
 
   val httpMethods = exec(
     http("Request GET")
@@ -31,15 +32,15 @@ class TestSimulation extends Simulation {
   val settingBody = exec(
     http("Request POST: json body")
       .post("/post")
-      .body(StringBody("""{"value":"test"}""")).asJSON
+      .body(StringBody("""{"value":"test"}""")).asJson
   ).exec(
     http("Request POST: form body")
       .post("/post")
       .formParam("first", "test1")
       .formParamSeq(Seq(("second", "test2"), ("third", "test3")))
       .formParamMap(Map("mapFirst" -> "red",
-                        "mapSecond" -> "green",
-                        "mapThird" -> "blue"))
+        "mapSecond" -> "green",
+        "mapThird" -> "blue"))
       .multivaluedFormParam("multiValued", Seq(1, 2, 3))
   ).exec(
     http("Request POST: multi-part body")
@@ -77,30 +78,28 @@ class TestSimulation extends Simulation {
   ).exec(
     http("Request POST: verify json body")
       .post("/post")
-      .body(StringBody("""{"value":"test"}""")).asJSON
+      .body(StringBody("""{"value":"test"}""")).asJson
       .check(jsonPath("$.json.value").exists)
       .check(jsonPath("$.json.value").is("test"))
   ).exec(
     http("Custom GET: verify XML body")
-      .get("http://repo.merproject.org/obs/home:/Kaffeine:/mer/latest_armv7hl/repodata/repomd.xml")
+      .get("http://repo.merproject.org/obs/home:/coderus:/3.0/sailfish/repodata/repomd.xml")
       .check(xpath("//rpm:data[@type='filelists']",
-             List("rpm" -> "http://linux.duke.edu/metadata/repo")).exists)
+        Map("rpm" -> "http://linux.duke.edu/metadata/repo")).exists)
   )
 
   val customFeatures = exec(
     http("Request GET: with signature calculator")
       .get("/get")
-      .signatureCalculator(new CustomAuth)
+      .sign(new CustomAuth)
       .check(jsonPath("$.headers.Authorization").exists)
       .check(jsonPath("$.headers.Authorization").is("TESTGEThttps://httpbin.org/get"))
   ).exec(
     http("Request GET: transform response")
       .get("/get")
-      .transformResponse{
-        case response => 
-        new ResponseWrapper(response) {
-          override val body = new StringResponseBody("{}", UTF_8)
-        }
+      .transformResponse {
+        (session, response) =>
+          response.copy(body = new StringResponseBody("{}", UTF_8))
       }
       .check(jsonPath("$.headers").notExists)
   ).exec(session => {
@@ -121,7 +120,7 @@ class TestSimulation extends Simulation {
       customFeatures
     )
     .pause(5)
-  
+
   val scnPosts = scenario("PostsSimulation")
     .exec(
       exec(ApiRequests.getAllPosts)
@@ -133,7 +132,7 @@ class TestSimulation extends Simulation {
 
   setUp(
     scn.inject(
-      constantUsersPerSec(3) during (5 minutes)
+      constantUsersPerSec(3) during (15 seconds) randomized
     ),
     scnPosts.inject(atOnceUsers(1))
   ).protocols(httpConf)

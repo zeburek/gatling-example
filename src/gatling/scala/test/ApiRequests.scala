@@ -15,14 +15,15 @@ object ApiRequests {
 
   val getUserPosts = http("Get user posts")
     .get(s"${Default.apiUrl}/posts")
-    .queryParam("userId","${selectedUser}")
+    .queryParam("userId", "${selectedUser}")
     .check(jsonPath("$..id").findAll.saveAs("allUserPostsIds"))
 
   val postNewCommentToRandomPost = http("Post new comment to random post")
     .post(s"${Default.apiUrl}/comments")
-    .body(StringBody("""{"postId":"${allUserPostsIds.random()}", 
-                     |"name":"Test name", "email":"test@exampl.com",
-                     |"body":"Test body"}""".stripMargin))
+    .body(StringBody(
+      """{"postId":"${allUserPostsIds.random()}",
+        |"name":"Test name", "email":"test@exampl.com",
+        |"body":"Test body"}""".stripMargin))
     .check(jsonPath("$..id").find.saveAs("newCommentId"))
 
   val getNewComment = http("Get new comment")

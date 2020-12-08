@@ -1,14 +1,14 @@
 package test.utils
 
-import org.asynchttpclient.{Request, RequestBuilderBase, SignatureCalculator}
+import io.gatling.http.client.{Request, SignatureCalculator}
 
 class CustomAuth extends SignatureCalculator {
 
-  override def calculateAndAddSignature(request: Request, requestBuilder: RequestBuilderBase[_]): Unit = {
-    val url = request.getUrl
+  override def sign(request: Request): Unit = {
+    val url = request.getUri
     val method = request.getMethod
-    val authHeader = "TEST"+method+url
-    requestBuilder.setHeader("Authorization", authHeader)
+    val authHeader = "TEST" + method + url
+    request.getHeaders.add("Authorization", authHeader)
   }
 
 }
